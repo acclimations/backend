@@ -33,7 +33,7 @@ class TodoServiceTest {
     @InjectMocks
     private TodoService todoService;
 
-    private Todo createSampleTodo(String id, String title, String description, boolean completed) {
+    private Todo createSampleTodo(String id, String title, String description, boolean completed, List<String> tags) {
         Todo todo = new Todo();
         todo.setId(id);
         todo.setTitle(title);
@@ -41,7 +41,14 @@ class TodoServiceTest {
         todo.setCompleted(completed);
         todo.setCreatedAt(Instant.now());
         todo.setUpdatedAt(Instant.now());
+        if (tags != null) {
+            todo.setTags(tags);
+        }
         return todo;
+    }
+
+    private Todo createSampleTodo(String id, String title, String description, boolean completed) {
+        return createSampleTodo(id, title, description, completed, null);
     }
 
     @Nested
@@ -130,6 +137,47 @@ class TodoServiceTest {
         }
 
         @Test
+        @DisplayName("タグが指定されている場合のTodo作成")
+        void shouldCreateTodoWithTags() {
+            // 準備
+            CreateTodoRequest request = new CreateTodoRequest();
+            request.setTitle("新しいタスク");
+            request.setDescription("説明");
+            request.setCompleted(true);
+            request.setTags(Arrays.asList("重要", "仕事", "期限あり"));
+
+            Todo expectedTodo = createSampleTodo("1", request.getTitle(), request.getDescription(), true, request.getTags());
+            when(todoRepository.save(any(Todo.class))).thenReturn(expectedTodo);
+
+            // 実行
+            Todo createdTodo = todoService.createTodo(request);
+
+            // 検証
+            assertThat(createdTodo.getTitle()).isEqualTo(request.getTitle());
+            assertThat(createdTodo.getDescription()).isEqualTo(request.getDescription());
+            assertThat(createdTodo.isCompleted()).isTrue();
+            assertThat(createdTodo.getTags()).containsExactlyElementsOf(request.getTags());
+            verify(todoRepository).save(any(Todo.class));
+        }
+
+        @Test
+        @DisplayName("タグが5個を超える場合は例外がスローされること")
+        void shouldThrowExceptionWhenTagsExceedLimit() {
+            // 準備
+            CreateTodoRequest request = new CreateTodoRequest();
+            request.setTitle("新しいタスク");
+            request.setDescription("説明");
+            request.setCompleted(true);
+            request.setTags(Arrays.asList("タグ1", "タグ2", "タグ3", "タグ4", "タグ5", "タグ6"));
+
+            // 実行と検証
+            assertThatThrownBy(() -> todoService.createTodo(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("タグは5個までしか設定できません");
+            verify(todoRepository, never()).save(any(Todo.class));
+        }
+
+        @Test
         @DisplayName("completedが指定されていない場合のTodo作成")
         void shouldCreateTodoWithDefaultCompletedStatus() {
             // 準備
@@ -155,6 +203,57 @@ class TodoServiceTest {
     @Nested
     @DisplayName("updateTodo のテスト")
     class UpdateTodoTest {
+
+        @Test
+        @DisplayName("タグを含むTodoを更新できること")
+        void shouldUpdateTodoWithTags() {
+            // 準備
+            String id = "1";
+            Todo existingTodo = createSampleTodo(id, "古いタイトル", "古い説明", false, Arrays.asList("古いタグ"));
+            when(todoRepository.findById(id)).thenReturn(Optional.of(existingTodo));
+
+            UpdateTodoRequest request = new UpdateTodoRequest();
+            request.setTitle("新しいタイトル");
+            request.setDescription("新しい説明");
+            request.setCompleted(true);
+            request.setTags(Arrays.asList("新しいタグ1", "新しいタグ2"));
+
+            Todo updatedTodo = createSampleTodo(id, request.getTitle(), request.getDescription(), true, request.getTags());
+            when(todoRepository.save(any(Todo.class))).thenReturn(updatedTodo);
+
+            // 実行
+            Todo result = todoService.updateTodo(id, request);
+
+            // 検証
+            assertThat(result.getTitle()).isEqualTo(request.getTitle());
+            assertThat(result.getDescription()).isEqualTo(request.getDescription());
+            assertThat(result.isCompleted()).isTrue();
+            assertThat(result.getTags()).containsExactlyElementsOf(request.getTags());
+            verify(todoRepository).findById(id);
+            verify(todoRepository).save(any(Todo.class));
+        }
+
+        @Test
+        @DisplayName("タグが5個を超える場合は例外がスローされること")
+        void shouldThrowExceptionWhenUpdatingWithTooManyTags() {
+            // 準備
+            String id = "1";
+            Todo existingTodo = createSampleTodo(id, "古いタイトル", "古い説明", false);
+            when(todoRepository.findById(id)).thenReturn(Optional.of(existingTodo));
+
+            UpdateTodoRequest request = new UpdateTodoRequest();
+            request.setTitle("新しいタイトル");
+            request.setDescription("新しい説明");
+            request.setCompleted(true);
+            request.setTags(Arrays.asList("タグ1", "タグ2", "タグ3", "タグ4", "タグ5", "タグ6"));
+
+            // 実行と検証
+            assertThatThrownBy(() -> todoService.updateTodo(id, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("タグは5個までしか設定できません");
+            verify(todoRepository).findById(id);
+            verify(todoRepository, never()).save(any(Todo.class));
+        }
 
         @Test
         @DisplayName("存在するTodoを更新できること")

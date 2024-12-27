@@ -1,6 +1,8 @@
 package org.acclimations.backend.backend.model;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class Todo {
@@ -10,10 +12,12 @@ public class Todo {
     private boolean completed;
     private Instant createdAt;
     private Instant updatedAt;
+    private List<String> tags;
 
     public Todo() {
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
+        this.tags = new ArrayList<>();
     }
 
     public String getId() {
@@ -76,5 +80,18 @@ public class Todo {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        if (tags != null && tags.size() <= 5) {
+            this.tags = tags;
+            this.updatedAt = Instant.now();
+        } else {
+            throw new IllegalArgumentException("タグは5個までしか設定できません");
+        }
     }
 }

@@ -31,6 +31,9 @@ public class TodoService {
         todo.setTitle(request.getTitle());
         todo.setDescription(request.getDescription());
         todo.setCompleted(request.getCompleted() != null ? request.getCompleted() : false);
+        if (request.getTags() != null) {
+            todo.setTags(request.getTags());
+        }
         
         return todoRepository.save(todo);
     }
@@ -41,6 +44,9 @@ public class TodoService {
         todo.setTitle(request.getTitle());
         todo.setDescription(request.getDescription());
         todo.setCompleted(request.getCompleted());
+        if (request.getTags() != null) {
+            todo.setTags(request.getTags());
+        }
         
         return todoRepository.save(todo);
     }
