@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  app:
+    build: 
+      context: .        # Dockerfile と同じディレクトリ
+      dockerfile: Dockerfile
+    container_name: spring-boot-dev
+    # ポートフォワード: 8080 を使う想定 (必要に応じて変更)
+    ports:
+      - "8080:8080"
+    # 重要：ホストのソースコードをコンテナにマウントしてホットリロード
+    volumes:
+      - ./:/app               # プロジェクトのルートを /app にマウント
+      - maven-repo:/root/.m2  # Maven キャッシュ用ボリューム
+    # ログをフォローして開発時にコンテナの標準出力を見るなら
+    tty: true
+    stdin_open: true
+
+volumes:
+  maven-repo:
